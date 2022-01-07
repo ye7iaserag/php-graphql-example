@@ -1,7 +1,7 @@
 /node_modules
 /public/hot
 /public/storage
-/public/phpmyadmin
+/public/pma
 /storage/*.key
 /vendor
 .env
