@@ -16,7 +16,6 @@ class UserType extends GraphQLType
 
     public function fields(): array
     {
-        // dd(\GraphQL\Type\Introspection::getIntrospectionQuery());
         return [
             'id' => [
                 'type' => Type::nonNull(Type::id()),

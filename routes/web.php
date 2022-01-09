@@ -14,5 +14,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    dump('Graph endpoint: '.\Illuminate\Support\Facades\Request::root().'/graphql');
+    dump('GraphiQL client: '.\Illuminate\Support\Facades\Request::root().'/graphiql');
+    dump('Introspection Query:', \GraphQL\Type\Introspection::getIntrospectionQuery());
+    dump('SDL:', \GraphQL\Utils\SchemaPrinter::doPrint(\Rebing\GraphQL\Support\Facades\GraphQL::schema()));
 });
