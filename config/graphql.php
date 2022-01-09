@@ -75,7 +75,8 @@ return [
         'default' => [
             'query' => [
                 // ExampleQuery::class,
-                App\GraphQL\Queries\UsersQuery::class
+                App\GraphQL\Queries\UsersQuery::class,
+                App\GraphQL\Queries\PostsQuery::class,
             ],
             'mutation' => [
                 // ExampleMutation::class,
@@ -83,7 +84,8 @@ return [
             // The types only available in this schema
             'types' => [
                 // ExampleType::class,
-                App\GraphQL\Types\UserType::class
+                App\GraphQL\Types\UserType::class,
+                App\GraphQL\Types\PostType::class,
             ],
 
             // Laravel HTTP middleware

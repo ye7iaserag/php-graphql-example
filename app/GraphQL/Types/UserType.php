@@ -16,6 +16,7 @@ class UserType extends GraphQLType
 
     public function fields(): array
     {
+        // dd(\GraphQL\Type\Introspection::getIntrospectionQuery());
         return [
             'id' => [
                 'type' => Type::nonNull(Type::id()),
@@ -28,6 +29,13 @@ class UserType extends GraphQLType
             'email' => [
                 'type' => Type::string(),
                 'description' => 'The email of user'
+            ],
+            'secret' => [
+                'type' => Type::string(),
+                'description' => 'The secret of user',
+                'privacy' => function(array $args, $ctx): bool {
+                    return $args['id'] == \Auth::id();
+                }
             ],
         ];
     }

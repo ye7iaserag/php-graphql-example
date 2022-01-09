@@ -3,7 +3,7 @@
 namespace App\GraphQL\Queries;
 
 use Closure;
-use App\Models\User;
+use App\Models\Post;
 use GraphQL;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\ResolveInfo;
@@ -11,10 +11,10 @@ use Rebing\GraphQL\Support\SelectFields;
 use Rebing\GraphQL\Support\Query;
 use App\GraphQL\Middleware;
 
-class UsersQuery extends Core\PaginationQuery
+class PostsQuery extends Core\PaginationQuery
 {
     protected $attributes = [
-        'name' => 'users',
+        'name' => 'posts',
     ];
 
     protected $middleware = [
@@ -23,8 +23,7 @@ class UsersQuery extends Core\PaginationQuery
 
     public function type(): Type
     {
-        //return Type::listOf(GraphQL::type('User'));
-        return GraphQL::paginate('User');
+        return GraphQL::paginate('Post');
     }
 
     public function wrappedTypeArgs(): array
@@ -34,14 +33,14 @@ class UsersQuery extends Core\PaginationQuery
                 'name' => 'id', 
                 'type' => Type::id(),
             ],
-            'name' => [
-                'name' => 'name', 
-                'type' => Type::string(),
+            'userId' => [
+                'name' => 'userId', 
+                'type' => Type::id(),
             ],
-            'email' => [
-                'name' => 'email', 
+            'title' => [
+                'name' => 'title', 
                 'type' => Type::string(),
-            ],
+            ]
         ];
     }
 
@@ -52,21 +51,21 @@ class UsersQuery extends Core\PaginationQuery
         $select = $fields->getSelect();
         $with = $fields->getRelations();
 
-        $users = User::select($select)->with($with);
-
-        \DB::listen(fn($q) => dump($q->sql));
-
-        
+        $users = Post::select($select)->with($with);
 
         if (isset($args['id'])) {
             $users->where('id' , $args['id']);
         }
 
-        if (isset($args['email'])) {
-            $users->where('email', $args['email']);
+        if (isset($args['userId'])) {
+            $users->where('user_id' , $args['userId']);
+        }
+
+        if (isset($args['title'])) {
+            $users->where('title', 'LIKE', $args['title']);
         }
         $args['limit'] ??= 10;
-        //  dd($getSelectFields);
+
         return $users->paginate($args['limit']);
     }
 }
