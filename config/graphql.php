@@ -20,7 +20,7 @@ return [
         //
         // 'group_attributes' => ['guard' => 'api']
         //
-        'group_attributes' => [],
+        'group_attributes' => ['guard' => 'web'],
     ],
 
     // The name of the default schema
@@ -75,11 +75,21 @@ return [
         'default' => [
             'query' => [
                 // ExampleQuery::class,
+                App\GraphQL\Queries\MeQuery::class,
                 App\GraphQL\Queries\UsersQuery::class,
                 App\GraphQL\Queries\PostsQuery::class,
             ],
             'mutation' => [
                 // ExampleMutation::class,
+                App\GraphQL\Mutations\Auth\LoginMutation::class,
+
+                App\GraphQL\Mutations\User\CreateUserMutation::class,
+                App\GraphQL\Mutations\User\UpdateUserMutation::class,
+                App\GraphQL\Mutations\User\DeleteUserMutation::class,
+
+                App\GraphQL\Mutations\Post\CreatePostMutation::class,
+                App\GraphQL\Mutations\Post\UpdatePostMutation::class,
+                App\GraphQL\Mutations\Post\DeletePostMutation::class,
             ],
             // The types only available in this schema
             'types' => [
@@ -168,7 +178,7 @@ return [
         'prefix' => 'graphiql', // Do NOT use a leading slash
         'controller' => \Rebing\GraphQL\GraphQLController::class . '@graphiql',
         'middleware' => [],
-        'view' => 'graphql::graphiql',
+        'view' => 'graphiql',
         'display' => env('ENABLE_GRAPHIQL', true),
     ],
 

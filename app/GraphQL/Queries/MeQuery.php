@@ -8,37 +8,33 @@ use Rebing\GraphQL\Support\Facades\GraphQL;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\ResolveInfo;
 use Rebing\GraphQL\Support\SelectFields;
-use App\GraphQL\Middleware;
+use Illuminate\Support\Facades\Auth;
 
-class UsersQuery extends Core\PaginationQuery
+class MeQuery extends Core\PaginationQuery
 {
     protected $attributes = [
-        'name' => 'users',
-    ];
-
-    protected $middleware = [
-        Middleware\ResolvePage::class,
+        'name' => 'me',
     ];
 
     public function type(): Type
     {
         //return Type::listOf(GraphQL::type('User'));
-        return GraphQL::paginate('User');
+        return GraphQL::type('User');
     }
 
     public function wrappedTypeArgs(): array
     {
         return [
             'id' => [
-                'name' => 'id',
+                'name' => 'id', 
                 'type' => Type::id(),
             ],
             'name' => [
-                'name' => 'name',
+                'name' => 'name', 
                 'type' => Type::string(),
             ],
             'email' => [
-                'name' => 'email',
+                'name' => 'email', 
                 'type' => Type::string(),
             ],
         ];
@@ -53,15 +49,13 @@ class UsersQuery extends Core\PaginationQuery
 
         $users = User::select($select)->with($with);
 
-        if (isset($args['id'])) {
-            $users->where('id', $args['id']);
-        }
+        $users->where('id' , Auth::user()->id);
 
-        if (isset($args['email'])) {
-            $users->where('email', $args['email']);
-        }
-        $args['limit'] ??= 10;
-        //  dd($getSelectFields);
-        return $users->paginate($args['limit']);
+        return $users->first();
+    }
+
+    public function authorize($root, array $args, $ctx, ResolveInfo $resolveInfo = null, Closure $getSelectFields = null): bool
+    {
+        return Auth::check();
     }
 }
