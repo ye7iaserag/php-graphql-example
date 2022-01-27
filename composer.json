@@ -26,8 +26,12 @@
         "psr-4": {
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/"
-        }
+            "Database\\Seeders\\": "database/seeders/",
+            "GraphQL\\Executor\\": "extended/GraphQL/Executor"
+        },
+        "exclude-from-classmap": [
+            "vendor/webonyx/graphql-php/src/Executor/ReferenceExecutor.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

@@ -8,7 +8,7 @@ return [
         'prefix' => 'graphql',
 
         // The controller/method to use in GraphQL request.
-        'controller' => \Rebing\GraphQL\GraphQLController::class . '@query',
+        'controller' => \App\Http\Controllers\GraphQLController::class . '@run',
 
         // Any middleware for the graphql route group
         // This middleware will apply to all schemas
@@ -91,11 +91,15 @@ return [
                 App\GraphQL\Mutations\Post\UpdatePostMutation::class,
                 App\GraphQL\Mutations\Post\DeletePostMutation::class,
             ],
+            'subscription' => [
+                App\GraphQL\Subscriptions\Post\PostUpdatedSubscription::class,
+            ],
             // The types only available in this schema
             'types' => [
                 // ExampleType::class,
                 App\GraphQL\Types\UserType::class,
                 App\GraphQL\Types\PostType::class,
+                App\GraphQL\Types\PostUpdatedType::class,
             ],
 
             // Laravel HTTP middleware
@@ -176,7 +180,7 @@ return [
      */
     'graphiql' => [
         'prefix' => 'graphiql', // Do NOT use a leading slash
-        'controller' => \Rebing\GraphQL\GraphQLController::class . '@graphiql',
+        'controller' => \App\Http\Controllers\GraphQLController::class . '@graphiql',
         'middleware' => [],
         'view' => 'graphiql',
         'display' => env('ENABLE_GRAPHIQL', true),

@@ -49,7 +49,7 @@
     var xcsrfToken = null;
 
     function graphQLFetcher(graphQLParams, data) {
-      console.log(data.headers);
+      // console.log(data.headers);
 
       let clientHeaders = {
         Accept: 'application/json',
@@ -57,9 +57,12 @@
         'x-csrf-token': xcsrfToken || '<?php echo csrf_token(); ?>'
       };
       let userHeaders = data.headers;
-      let headers = {...clientHeaders, ...userHeaders};
+      let headers = {
+        ...clientHeaders,
+        ...userHeaders
+      };
 
-      console.log(headers);
+      // console.log(headers);
       return fetch(
         '<?php echo $graphqlPath; ?>', {
           method: 'post',
@@ -73,6 +76,20 @@
           return response.text();
         });
       });
+    }
+    
+    
+    function graphQLSSEFetcher(payload) {
+      test = payload.query.replace(/(\r\n|\n|\r|\t)/gm, "");
+      // console.log(test);
+      operationName = payload.operationName? '&operationName='+payload.operationName : '';
+      const sse = new EventSource('<?php echo $graphqlPath; ?>?query='+test+operationName);//+'&operationName='+payload.operationName);
+      sse.onmessage = function(e) {
+        console.log(e);
+        // return e.json().catch(function() {
+          return e.data;
+        // });
+      }
     }
 
     ReactDOM.render(

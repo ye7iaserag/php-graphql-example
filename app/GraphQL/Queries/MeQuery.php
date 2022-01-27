@@ -9,8 +9,8 @@ use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\ResolveInfo;
 use Rebing\GraphQL\Support\SelectFields;
 use Illuminate\Support\Facades\Auth;
-
-class MeQuery extends Core\PaginationQuery
+use Rebing\GraphQL\Support\Query;
+class MeQuery extends Query
 {
     protected $attributes = [
         'name' => 'me',
@@ -22,7 +22,7 @@ class MeQuery extends Core\PaginationQuery
         return GraphQL::type('User');
     }
 
-    public function wrappedTypeArgs(): array
+    public function args(): array
     {
         return [
             'id' => [
