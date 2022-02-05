@@ -5,6 +5,7 @@ namespace App\GraphQL\Subscriptions\Post;
 
 use Closure;
 use App\Models\Post;
+use Carbon\Carbon;
 use GraphQL\Type\Definition\ObjectType;
 use Rebing\GraphQL\Support\Facades\GraphQL;
 use GraphQL\Type\Definition\Type;
@@ -24,8 +25,7 @@ class PostUpdatedSubscription extends Field
 
     public function type(): Type
     {
-        //return GraphQL::type(GraphQL::wrapType('Post', 'PostUpdated', \App\GraphQL\Types\PostUpdatedType::class));
-        return Type::nonNull(GraphQL::type('PostUpdated'));
+        return GraphQL::type('PostUpdated');
     }
 
     public function args(): array
@@ -38,24 +38,22 @@ class PostUpdatedSubscription extends Field
         ];
     }
 
+    private static ?\Carbon\Carbon $postUpdatedAt = null;
+
     public function resolve($root, array $args, $context, ResolveInfo $info, Closure $getSelectFields)
     {
-        // dd($info->returnType->getField('post')->config['type']);
-        // dd($info->returnType);
-        //dd($info->lookAhead()->subFields('Post'));
-        // dd($info->lookAhead()->queryPlan());
         $fields = $getSelectFields();
         $select = $info->lookAhead()->subFields('Post');
         $with = $fields->getRelations();
-        $query = Post::select($select)->with($with);
+        $query = Post::select(array_merge($select, ['updated_at']))->with($with);
         
         $post = $query->where('id', $args['id'])->first();
-        $updatedAt = $post->updated_at;
-        $post->refresh();
-        $postUpdated = new PostUpdated($post);
-        return $postUpdated;
-        if (new \Carbon\Carbon($post->updated_at) > new \Carbon\Carbon($updatedAt)) {
-            return $post;
+
+        if (PostUpdatedSubscription::$postUpdatedAt === null) PostUpdatedSubscription::$postUpdatedAt = $post->updated_at;
+
+        if (new \Carbon\Carbon($post->updated_at) > new \Carbon\Carbon(PostUpdatedSubscription::$postUpdatedAt)) {
+            PostUpdatedSubscription::$postUpdatedAt = $post->updated_at;
+            return new PostUpdated($post);
         }
 
         return null;

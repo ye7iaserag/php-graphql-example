@@ -44,13 +44,10 @@
 <body>
   <div id="graphiql">Loading...</div>
   <script src="https://unpkg.com/graphiql/graphiql.min.js" type="application/javascript"></script>
-  <!-- <script src="/renderExample.js" type="application/javascript"></script> -->
   <script>
     var xcsrfToken = null;
 
     function graphQLFetcher(graphQLParams, data) {
-      // console.log(data.headers);
-
       let clientHeaders = {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -62,7 +59,6 @@
         ...userHeaders
       };
 
-      // console.log(headers);
       return fetch(
         '<?php echo $graphqlPath; ?>', {
           method: 'post',
@@ -77,24 +73,33 @@
         });
       });
     }
-    
-    
-    function graphQLSSEFetcher(payload) {
-      test = payload.query.replace(/(\r\n|\n|\r|\t)/gm, "");
-      // console.log(test);
-      operationName = payload.operationName? '&operationName='+payload.operationName : '';
-      const sse = new EventSource('<?php echo $graphqlPath; ?>?query='+test+operationName);//+'&operationName='+payload.operationName);
-      sse.onmessage = function(e) {
-        console.log(e);
-        // return e.json().catch(function() {
-          return e.data;
-        // });
-      }
+
+    function graphQLDynamicFetcher(graphQLParams, data) {
+      let useSSE = false;
+      data.documentAST.definitions.forEach(element => {
+        if(element.operation === 'subscription' && element.name.value === graphQLParams.operationName)
+          useSSE = true;
+      })
+      if (useSSE) return graphQLSSEFetcher(graphQLParams, data);
+      return graphQLFetcher(graphQLParams, data)
+    }
+
+    function graphQLSSEFetcher(graphQLParams, data) {
+      const query = graphQLParams.query.replace(/(\r\n|\n|\r|\t)/gm, "");
+      const operationName = graphQLParams.operationName ? '&operationName=' + graphQLParams.operationName : '';
+      const sse = new EventSource('<?php echo $graphqlPath; ?>?query=' + query + operationName); //+'&operationName='+graphQLParams.operationName);
+      
+      return new Promise(function(resolve, reject) {
+        sse.onmessage = (e) => {console.log(JSON.parse(e.data));return resolve(e);}
+      }).then(function(response) {
+        // sse.close();
+        return JSON.parse(response.data);
+      });
     }
 
     ReactDOM.render(
       React.createElement(GraphiQL, {
-        fetcher: graphQLFetcher,
+        fetcher: graphQLDynamicFetcher,
         defaultVariableEditorOpen: true,
       }),
       document.getElementById('graphiql'),

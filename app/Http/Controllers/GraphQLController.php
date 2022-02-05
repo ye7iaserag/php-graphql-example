@@ -26,7 +26,6 @@ class GraphQLController extends Controller
         $schemaName = $this->findSchemaNameInRequest($request, "$routePrefix/") ?? $config->get('graphql.default_schema', 'default');
 
         $operations = $parser->parseRequest($request);
-
         $headers = $config->get('graphql.headers', []);
         $jsonOptions = $config->get('graphql.json_encoding_options', 0);
 
@@ -44,7 +43,11 @@ class GraphQLController extends Controller
 
         if (!$isStream) {
             foreach ((new OperationParams($operations))->getParsedQuery()->definitions as $definition)
-                if ($definition instanceof \GraphQL\Language\AST\OperationDefinitionNode && strtolower($definition->operation) === "subscription") throw new \Exception("Subs not allowed over non stream connections");
+                if (
+                    $definition instanceof \GraphQL\Language\AST\OperationDefinitionNode && strtolower($definition->operation) === "subscription"
+                    && $definition->name->value === $operations->operation
+                )
+                    throw new \Exception("Subs not allowed over non stream connections");
         }
 
         $data = \Rebing\GraphQL\Helpers::applyEach(
@@ -54,16 +57,28 @@ class GraphQLController extends Controller
             },
             $operations
         );
-
-
         if ($isStream)
             return $this->subscriptionStream($data);
 
         return response()->json($data, 200, $headers, $jsonOptions);
     }
 
-    private function streamData($data) {
-        echo 'data: '.json_encode($data)."\n\n";
+    private function heartBeatMessage() {
+        echo "data:\n\n";
+        ob_flush();
+        flush();
+    }
+
+    private function endOfStreamMessage() {
+        echo "data: END-OF-STREAM\n\n";
+        ob_flush();
+        flush();
+    }
+
+    private function streamData(?string $key, mixed $data)
+    {
+        $arr = $key ? ['data' => [$key => $data]] : $data;
+        echo 'data: ' . json_encode($arr) . "\n\n";
         ob_flush();
         flush();
     }
@@ -71,32 +86,35 @@ class GraphQLController extends Controller
     private function subscriptionStream($data): StreamedResponse
     {
         return response()->stream(function () use ($data) {
-            if (array_key_exists('errors', $data)) {
-                $this->streamData($data);
-                return;
-            }
             try {
+                $timeStart = microtime(true);
+                if (array_key_exists('errors', $data)) {
+                    $this->streamData(null, $data);
+                    return;
+                }
+                $curr = ['data' => []];
                 foreach ($data['data'] as $key => $value) {
                     if (is_callable($value)) continue;
-                    $this->streamData($value);
+                    $curr['data'][$key] = $value;
                     unset($data['data'][$key]);
                 }
-                if (count($data['data']) === 0) return;
+                if (count($curr['data']) > 0) $this->streamData(null, $curr);
+                if (count($data['data']) === 0) return null;
+            
+                while (true) {
+                    if (connection_aborted() || microtime(true) - $timeStart >= 60) {
+                        break;
+                    }
+                    foreach ($data['data'] as $key => $value) {
+                        $result = $value();
+                        if ($result) $this->streamData($key, $result);
+                    }
+                    sleep(1);
+                    // $this->heartBeatMessage();
+                }
             } catch (\Throwable $th) {
-                $this->streamData($th);
+                $this->streamData(null, $th);
                 return;
-            }
-            while (true) {
-                if (connection_aborted()) {
-                    break;
-                }
-                foreach ($data['data'] as $value) {
-                    $result = $value();
-                    dd($result);
-                    $this->streamData($result);
-                }
-
-                sleep(1);
             }
         }, 200, [
             'Cache-Control' => 'no-cache',
@@ -104,63 +122,5 @@ class GraphQLController extends Controller
             'X-Accel-Buffering' => 'no',
             'Connection' => 'keep-alive'
         ]);
-    }
-
-    // public function graphiql(Request $request, Repository $config, Factory $viewFactory): View
-    // {
-    //     $routePrefix = $config->get('graphql.graphiql.prefix', 'graphiql');
-    //     $schemaName = $this->findSchemaNameInRequest($request, "$routePrefix/");
-
-    //     $graphqlPath = '/' . $config->get('graphql.route.prefix', 'graphql');
-
-    //     if ($schemaName) {
-    //         $graphqlPath .= '/' . $schemaName;
-    //     }
-
-    //     $view = $config->get('graphql.graphiql.view', 'graphql::graphiql');
-
-    //     return $viewFactory->make($view, [
-    //         'graphqlPath' => $graphqlPath,
-    //         'schema' => $schemaName,
-    //     ]);
-    // }
-
-    // /**
-    //  * In case batching is not supported, send an error back for each batch
-    //  * (with a hardcoded limit of 100).
-    //  *
-    //  * The returned format still matches the GraphQL specs
-    //  *
-    //  * @param array<string,mixed> $input
-    //  * @return array<array{errors:array<array{message:string}>}>
-    //  */
-    // protected function createBatchingNotSupportedResponse(array $input): array
-    // {
-    //     $count = min(\count($input), 100);
-
-    //     $data = [];
-
-    //     for ($i = 0; $i < $count; $i++) {
-    //         $data[] = [
-    //             'errors' => [
-    //                 [
-    //                     'message' => 'Batch request received but batching is not supported',
-    //                 ],
-    //             ],
-    //         ];
-    //     }
-
-    //     return $data;
-    // }
-
-    // protected function findSchemaNameInRequest(Request $request, string $routePrefix): ?string
-    // {
-    //     $path = $request->path();
-
-    //     if (!Str::startsWith($path, $routePrefix)) {
-    //         return null;
-    //     }
-
-    //     return Str::after($path, $routePrefix);
-    // }
+    } 
 }
